@@ -8,8 +8,10 @@ import { access, cp, readdir, readFile, rm, stat, writeFile } from "node:fs/prom
 import { constants as fsConstants } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { build } from "esbuild";
 import JSZip from "jszip";
 import { readAppMetadata } from "./appMetadata.mjs";
+import { compatibilityPolicy } from "./compatibilityPolicy.mjs";
 import { pruneCssFileForPlatform } from "./pruneCssForPlatform.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -58,6 +60,52 @@ export function buildVidaaIndexHtml() {
 `;
 }
 
+// Standalone on-device diagnostic page: runtime, codecs, track APIs, remote
+// keys, addon reachability and a playback probe. It does not load the app.
+export function buildVidaaDiagnosticHtml() {
+  return `<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${appName} · diagnostic VIDAA</title>
+  <style>
+    body { margin: 0; padding: 24px 48px; background: #0e0f12; color: #f2f2f2; font: 22px/1.4 sans-serif; }
+    h1 { font-size: 34px; margin: 0 0 8px; }
+    h2 { font-size: 26px; margin: 24px 0 8px; }
+    input { width: 80%; font-size: 22px; padding: 8px; }
+    button { font-size: 22px; padding: 8px 16px; margin: 8px 8px 0 0; }
+    input:focus, button:focus { outline: 4px solid #4da3ff; }
+    video { display: block; width: 640px; height: 360px; margin-top: 12px; background: #000; }
+    pre { white-space: pre-wrap; font-size: 18px; background: #1b1d22; padding: 12px; }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <script src="vidaa-diagnostic.js"></script>
+</body>
+</html>
+`;
+}
+
+async function buildDiagnosticBundle() {
+  await build({
+    entryPoints: [path.join(rootDir, "js", "platform", "vidaa", "vidaaDiagnosticPage.js")],
+    outfile: path.join(appStageDir, "vidaa-diagnostic.js"),
+    bundle: true,
+    format: "iife",
+    platform: "browser",
+    target: [`chrome${compatibilityPolicy.chromiumVersion}`],
+    minify: true,
+    legalComments: "none"
+  });
+  await writeFile(
+    path.join(appStageDir, "vidaa-diagnostic.html"),
+    buildVidaaDiagnosticHtml(),
+    "utf8"
+  );
+}
+
 async function stageApp() {
   await rm(stagingDir, { recursive: true, force: true });
   await cp(distDir, appStageDir, { recursive: true });
@@ -67,6 +115,7 @@ async function stageApp() {
   await pruneCssFileForPlatform(path.join(appStageDir, "css", "bundle.css"), "vidaa");
   await cp(path.join(rootDir, "assets", "images", "icon.png"), path.join(appStageDir, "icon.png"));
   await writeFile(path.join(appStageDir, "index.html"), buildVidaaIndexHtml(), "utf8");
+  await buildDiagnosticBundle();
 }
 
 async function addDirectoryToZip(zip, directory, prefix = "") {
