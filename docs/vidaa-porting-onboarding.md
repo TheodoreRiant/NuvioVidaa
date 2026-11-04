@@ -129,9 +129,49 @@ ne couvre que touches/exit/label/capacités. Tout le reste est piloté par des `
 9. **Tests** : dupliquer le pattern `scripts/test-tizen-*` pour `vidaa` (détection, touches, échelle de
    moteurs) et ajouter une étape CI.
 
-## 7. Questions ouvertes à trancher
+## 7. Référence : comment fait Stremio
+
+Les apps TV Stremio (Tizen, webOS, Titan/NetTV, VIDAA) sont fermées, mais leur couche vidéo est publique :
+[`Stremio/stremio-video`](https://github.com/Stremio/stremio-video) (lu au commit `7a7462b`, v0.0.105,
+2026-10-28). Ce qu'on y voit :
+
+- **Plateforme passée explicitement, pas détectée.** Le shell TV transmet `platform: 'Vidaa'` dans la
+  commande `load` (`src/StremioVideo/StremioVideo.js` → `src/platform.js`). Même principe que notre
+  `__NUVIO_PLATFORM__` injecté au packaging.
+- **Une implémentation vidéo par plateforme**, choisie dans `src/StremioVideo/selectVideoImplementation.js`
+  et composée avec des décorateurs communs (`withStreamingServer`, `withHTMLSubtitles`, `withVideoParams`).
+- **`src/VidaaVideo/VidaaVideo.js` (558 lignes) est un simple `<video>` HTML5** : `video.src = stream.url`,
+  sans MSE/hls.js, sans API native. Pistes audio via `videoElement.audioTracks`, sous-titres embarqués
+  via `videoElement.textTracks` (avec un contournement : activer puis désactiver la première piste au
+  démarrage pour que la TV publie la liste), cues repositionnés (`line = 100`). Seules les commandes
+  `load` / `unload` / `destroy` sont gérées. `canPlayStream` renvoie toujours `true`.
+- **Sous-titres ASS rendus sur canvas** sur toutes les TV, VIDAA comprise
+  (`src/withHTMLSubtitles/usesCanvasASS.js`).
+- **Torrent/P2P via un serveur de streaming distant** : quand `streamingServerURL` est fourni (Stremio
+  Service sur un PC/NAS du réseau local, port 11470 par défaut), `withStreamingServer` crée le torrent
+  avec `POST /{infoHash}/create`, sonde le flux (`/hlsv2/probe`) et, si la TV ne sait pas le lire,
+  bascule sur le **transcodage HLS du serveur** (`/hlsv2/{id}/master.m3u8`). VIDAA est absente de la
+  liste qui désactive le transcodage (`src/supportsTranscoding.js` : Tizen, webOS, Titan, NetTV) : sur
+  VIDAA, Stremio compte donc sur ce transcodage pour les codecs ou conteneurs non supportés.
+
+**Ce que ça change pour Nuvio :**
+
+1. **Le P2P reste possible sur VIDAA** grâce à un serveur de streaming distant configurable. Nos
+   résolveurs parlent déjà la même API EngineFS (`js/core/p2p/tizenStreamingServerResolver.js` fait
+   `POST ${baseUrl}/${infoHash}/create`), mais `normalizeBaseUrl()` n'accepte que
+   `127.0.0.1`/`localhost`. Il suffirait d'un résolveur générique acceptant une URL réseau saisie par
+   l'utilisateur (avec les risques CORS et HTTP mixte à vérifier).
+2. **Le moteur de lecture VIDAA peut être minimal** : `<video>` natif en premier, avec `audioTracks` et
+   `textTracks`. hls.js et dash.js restent à valider sur TV (Stremio ne les utilise pas sur VIDAA).
+3. **Le transcodage côté serveur compense** l'absence de DTS, MKV, etc., quand un serveur de streaming
+   est configuré.
+4. Stremio ne contourne pas l'absence de service local : pas de plugins hors CORS, ni de proxy local,
+   ni d'extraction de sous-titres côté TV.
+
+## 8. Questions ouvertes à trancher
 
 - Version(s) VIDAA / Chromium minimales visées ?
 - Distribution : app hébergée (store Hisense) ou sideload/dev mode ?
 - Support MSE/EME (hls.js, dash.js, DRM) et codecs (HEVC, AC3/EAC3, DTS) sur les modèles cibles ?
-- Acceptable de perdre P2P et plugins hors-CORS sur VIDAA ?
+- Plugins hors CORS : acceptable de les perdre sur VIDAA ?
+- P2P : ajouter un réglage « serveur de streaming distant » (modèle Stremio) ?
