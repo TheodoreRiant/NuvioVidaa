@@ -32,8 +32,12 @@ export function createTizenStreamingServerResolverMethods01() {
     isTorrentStream(stream = {}) {
       return Boolean(getInfoHash(stream));
     },
+    // Also covers Hisense VIDAA, which has no local streaming service at all.
     isUnsupportedOnCurrentTizen(stream = {}) {
-      return Platform.isTizen() && this.isTorrentStream(stream) && !TizenCapabilities.canUseP2p();
+      if (!this.isTorrentStream(stream)) {
+        return false;
+      }
+      return Platform.isVidaa() || (Platform.isTizen() && !TizenCapabilities.canUseP2p());
     },
     getResolvedStreamState(stream = {}) {
       const state = stream?.tizenP2p || stream?.raw?.tizenP2p || null;

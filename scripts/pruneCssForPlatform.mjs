@@ -5,7 +5,9 @@ import postcss from "postcss";
 // other platform (see applyPerformanceMode in js/app.js and the Tizen adapter).
 const FOREIGN_PLATFORM_CLASSES = {
   webos: /\.(?:legacy-tizen|tizen-tv)(?![\w-])/,
-  tizen: /\.(?:legacy-webos|legacy-webos38|webos-unpromoted-home-tracks)(?![\w-])/
+  tizen: /\.(?:legacy-webos|legacy-webos38|webos-unpromoted-home-tracks)(?![\w-])/,
+  vidaa:
+    /\.(?:legacy-tizen|tizen-tv|legacy-webos|legacy-webos38|webos-unpromoted-home-tracks)(?![\w-])/
 };
 
 export function pruneCssForPlatform(css, platform) {

@@ -117,7 +117,9 @@ export function getTvRuntimePerformanceProfile({ forceRefresh = false } = {}) {
 
   const isWebOS = Platform.isWebOS();
   const isTizen = Platform.isTizen();
-  const isTvRuntime = isWebOS || isTizen;
+  // VIDAA exposes no firmware year; its profile relies on the Chromium version.
+  const isVidaa = Platform.isVidaa();
+  const isTvRuntime = isWebOS || isTizen || isVidaa;
   let chromiumMajorVersion = readChromiumMajorVersion();
   if (!isTvRuntime) {
     cachedProfile = Object.freeze({
@@ -153,7 +155,7 @@ export function getTvRuntimePerformanceProfile({ forceRefresh = false } = {}) {
 
   cachedProfile = Object.freeze({
     isTvRuntime: true,
-    platform: isWebOS ? "webos" : "tizen",
+    platform: isWebOS ? "webos" : isVidaa ? "vidaa" : "tizen",
     tvYear,
     chromiumMajorVersion,
     tvYearKnown,

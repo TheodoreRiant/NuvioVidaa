@@ -6,10 +6,10 @@ import { renderPlaybackSubtitleBody } from "./settingsScreenPlaybackMarkup-04-su
 import { renderPlaybackP2pBody } from "./settingsScreenPlaybackMarkup-05-p2p.js";
 
 export function renderPlaybackSectionMarkup(model) {
-  const { TorrentSettingsStore, Platform, TizenCapabilities, SECTION_META, t } = internals;
+  const { TorrentSettingsStore, Platform, isP2pUnsupportedOnThisTv, SECTION_META, t } = internals;
   const expanded = this.expandedSections.playback;
   const torrentSettings = model.torrent || TorrentSettingsStore.get();
-  const tizenP2pUnsupported = TizenCapabilities.isP2pUnsupported();
+  const tizenP2pUnsupported = isP2pUnsupportedOnThisTv();
   const p2pUnavailableSubtitle = tizenP2pUnsupported
     ? t("settings_p2p_unsupported_subtitle", {}, "Not supported on this TV.")
     : t("settings_p2p_subtitle");
