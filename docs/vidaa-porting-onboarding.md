@@ -2,7 +2,7 @@
 
 > Base : `f6fe075` (Nuvio TV Smart v1.3.6). Ce document recense la couche plateforme existante et
 > toutes les dépendances Tizen/webOS à traiter pour une cible VIDAA. Les points marqués **[à vérifier
-> sur TV]** sont des hypothèses sur le runtime VIDAA à confirmer sur un appareil réel.
+> > sur TV]** sont des hypothèses sur le runtime VIDAA à confirmer sur un appareil réel.
 
 ## 1. Vue d'ensemble
 
@@ -19,19 +19,19 @@
 
 ## 2. La couche plateforme (`js/platform/`, ~4 600 lignes)
 
-| Fichier | Rôle |
-|---|---|
-| `index.js` | **Façade `Platform`** : détection (`detectPlatformName`), table `ADAPTERS`, `isTizen/isWebOS/isBrowser`, `getWebOsMajorVersion`, `exitApp`, `normalizeKey`, `isBackEvent`, `getCapabilities`, `prepareVideoElement`. |
-| `environment.js` | Alias mince de `Platform` (`Environment.isWebOS()` …). |
-| `adapters/browserAdapter.js` | Adaptateur par défaut (fallback). **C'est ce qui tournerait aujourd'hui sur VIDAA.** |
-| `adapters/tizenAdapter.js` | Viewport 1920×1080, `tizen.tvinputdevice.registerKey(Batch)`, exit via `tizen.application`, détection AVPlay. |
-| `adapters/webosAdapter.js` | Exit via `webOSSystem.close()`, `WebOSPlayerExtensions.apply(video)`. |
-| `sharedKeys.js` | Normalisation des touches télécommande (codes 461/10009/27/8 pour Back, médias 415/19/413/417/412…). Commun aux 3 adaptateurs. |
-| `tvRuntimePerformance.js` | Profil perf « legacy TV » basé sur l'année Tizen/webOS → classes CSS et budgets. |
-| `pluginServiceClient.js` | Client du PluginService ; route vers `TizenPluginService` / `WebOsPluginService`, **sinon `directBrowserFetch` (fetch direct, soumis au CORS)**. |
-| `playbackProxyRedirectTrace.js` | Trace des redirections via proxy local `127.0.0.1`. |
-| `tizen/*` | `tizenCapabilities` (version, plugins ≥ 6.0), `tizenEngineFsService` (`:2710`), `tizenPluginService` (`:2711`), `tizenPlaybackProxy`, `tizenRedirectResolver`, `tizenScreenSaver`. |
-| `webos/*` | `webosLunaService` (bus Luna), `webosCompanionService`, `webosPluginService`, `webosPlaybackProxy`, `webosSupabaseProxy`, `webosAudioCapabilities`, `webosDtsAudioTranscoder`, `webosExactSeek`, `webosPlayerExtensions`. |
+| Fichier                         | Rôle                                                                                                                                                                                                                      |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `index.js`                      | **Façade `Platform`** : détection (`detectPlatformName`), table `ADAPTERS`, `isTizen/isWebOS/isBrowser`, `getWebOsMajorVersion`, `exitApp`, `normalizeKey`, `isBackEvent`, `getCapabilities`, `prepareVideoElement`.      |
+| `environment.js`                | Alias mince de `Platform` (`Environment.isWebOS()` …).                                                                                                                                                                    |
+| `adapters/browserAdapter.js`    | Adaptateur par défaut (fallback). **C'est ce qui tournerait aujourd'hui sur VIDAA.**                                                                                                                                      |
+| `adapters/tizenAdapter.js`      | Viewport 1920×1080, `tizen.tvinputdevice.registerKey(Batch)`, exit via `tizen.application`, détection AVPlay.                                                                                                             |
+| `adapters/webosAdapter.js`      | Exit via `webOSSystem.close()`, `WebOSPlayerExtensions.apply(video)`.                                                                                                                                                     |
+| `sharedKeys.js`                 | Normalisation des touches télécommande (codes 461/10009/27/8 pour Back, médias 415/19/413/417/412…). Commun aux 3 adaptateurs.                                                                                            |
+| `tvRuntimePerformance.js`       | Profil perf « legacy TV » basé sur l'année Tizen/webOS → classes CSS et budgets.                                                                                                                                          |
+| `pluginServiceClient.js`        | Client du PluginService ; route vers `TizenPluginService` / `WebOsPluginService`, **sinon `directBrowserFetch` (fetch direct, soumis au CORS)**.                                                                          |
+| `playbackProxyRedirectTrace.js` | Trace des redirections via proxy local `127.0.0.1`.                                                                                                                                                                       |
+| `tizen/*`                       | `tizenCapabilities` (version, plugins ≥ 6.0), `tizenEngineFsService` (`:2710`), `tizenPluginService` (`:2711`), `tizenPlaybackProxy`, `tizenRedirectResolver`, `tizenScreenSaver`.                                        |
+| `webos/*`                       | `webosLunaService` (bus Luna), `webosCompanionService`, `webosPluginService`, `webosPlaybackProxy`, `webosSupabaseProxy`, `webosAudioCapabilities`, `webosDtsAudioTranscoder`, `webosExactSeek`, `webosPlayerExtensions`. |
 
 **Conclusion** : l'abstraction existe (pattern adaptateur) mais elle est **partielle** — l'adaptateur
 ne couvre que touches/exit/label/capacités. Tout le reste est piloté par des `if (Platform.isTizen())`
@@ -40,6 +40,7 @@ ne couvre que touches/exit/label/capacités. Tout le reste est piloté par des `
 ## 3. Fuites plateforme hors de `js/platform/`
 
 ### 3.1 Branchements `isTizen()/isWebOS()/getWebOsMajorVersion()`
+
 **94 fichiers** hors `js/platform`. Les plus denses :
 
 - Player (cœur du sujet) : `js/core/player/playerControllerMethods-18-play.js` (12),
@@ -60,15 +61,16 @@ ne couvre que touches/exit/label/capacités. Tout le reste est piloté par des `
 
 ### 3.2 Globals natifs utilisés en direct (à encapsuler)
 
-| Global | Fichiers hors `js/platform` |
-|---|---|
-| `webapis.*` (dont `productinfo`, AVPlay) | `js/core/player/engines/platformAvplayEngine.js`, `js/core/auth/deviceSessionRegistration.js`, `js/ui/screens/settings/customPosterPhoneConfig.js` |
-| `tizen.application` | `js/core/deeplink/launchDeepLink.js` |
-| `PalmSystem` / `webOSSystem` / `webOS.*` | `js/app.js` (callbacks onshow/onhide/relaunch), `js/core/deeplink/launchDeepLink.js`, `js/core/auth/deviceSessionRegistration.js`, `playerScreenMethods-29-*` |
-| `luna://…` | `streamScreenMethods-07-*`, `streamScreenMethods-08-*` (lecteur natif LG), `playerScreenMethods-01-mount.js` (settingsservice), `playerControllerMethods-02-*` (com.webos.media) |
-| AVPlay (mention `avplay`) | 69 fichiers : `js/core/player` (22+2 engines), `js/ui/screens/player` (46), debug, diagnostics, `localMediaTracksRepository` |
+| Global                                   | Fichiers hors `js/platform`                                                                                                                                                      |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `webapis.*` (dont `productinfo`, AVPlay) | `js/core/player/engines/platformAvplayEngine.js`, `js/core/auth/deviceSessionRegistration.js`, `js/ui/screens/settings/customPosterPhoneConfig.js`                               |
+| `tizen.application`                      | `js/core/deeplink/launchDeepLink.js`                                                                                                                                             |
+| `PalmSystem` / `webOSSystem` / `webOS.*` | `js/app.js` (callbacks onshow/onhide/relaunch), `js/core/deeplink/launchDeepLink.js`, `js/core/auth/deviceSessionRegistration.js`, `playerScreenMethods-29-*`                    |
+| `luna://…`                               | `streamScreenMethods-07-*`, `streamScreenMethods-08-*` (lecteur natif LG), `playerScreenMethods-01-mount.js` (settingsservice), `playerControllerMethods-02-*` (com.webos.media) |
+| AVPlay (mention `avplay`)                | 69 fichiers : `js/core/player` (22+2 engines), `js/ui/screens/player` (46), debug, diagnostics, `localMediaTracksRepository`                                                     |
 
 ### 3.3 Build / packaging / CSS / assets
+
 - `index.html` : script inline de détection Tizen (viewport forcé).
 - `appinfo.json` : manifeste webOS (id `space.nuvio.webos`, ACG Luna).
 - `assets/libs/webOSTV.js` : lib LG embarquée.
@@ -80,17 +82,18 @@ ne couvre que touches/exit/label/capacités. Tout le reste est piloté par des `
 
 ## 4. Fonctionnalités dépendant d'un service natif
 
-| Fonctionnalité | Tizen | webOS | VIDAA (hypothèse) |
-|---|---|---|---|
-| Torrent/P2P (EngineFS local) | `services/tizen/enginefs-service.js` (:2710) | Luna `torrentCreate` … | **Indisponible** — pas de service d'arrière-plan sur une app web VIDAA **[à vérifier]** |
-| PluginService (fetch hors CORS) | `services/tizen/plugin-service.js` (:2711) | `services/webos/plugin` | Fallback `directBrowserFetch` existe → **plugins limités par le CORS** |
-| Proxy de lecture / redirections | `tizenPlaybackProxy`, `tizenRedirectResolver` | `webosPlaybackProxy` | Aucun ; lecture directe uniquement |
-| Sous-titres embarqués (MKV texte/bitmap, tx3g) | `services/tizen/runtime/*` | Luna `bitmapSubtitle*`, `embeddedSubtitleTextWindow` | Dépendra des `textTracks` natifs ; sinon externes seulement |
-| Transcodage audio DTS | — | `webosDtsAudioTranscoder` | Aucun |
-| Proxy Supabase / images (imgur) | — | `webosSupabaseProxy`, `imageProxy` | Fetch direct (CORS) |
-| Lecteur natif (AVPlay / app LG) | AVPlay | `luna://com.webos.applicationManager` | `<video>` HTML5 + hls.js / dash.js (MSE/EME) **[à vérifier]** |
+| Fonctionnalité                                 | Tizen                                         | webOS                                                | VIDAA (hypothèse)                                                                       |
+| ---------------------------------------------- | --------------------------------------------- | ---------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Torrent/P2P (EngineFS local)                   | `services/tizen/enginefs-service.js` (:2710)  | Luna `torrentCreate` …                               | **Indisponible** — pas de service d'arrière-plan sur une app web VIDAA **[à vérifier]** |
+| PluginService (fetch hors CORS)                | `services/tizen/plugin-service.js` (:2711)    | `services/webos/plugin`                              | Fallback `directBrowserFetch` existe → **plugins limités par le CORS**                  |
+| Proxy de lecture / redirections                | `tizenPlaybackProxy`, `tizenRedirectResolver` | `webosPlaybackProxy`                                 | Aucun ; lecture directe uniquement                                                      |
+| Sous-titres embarqués (MKV texte/bitmap, tx3g) | `services/tizen/runtime/*`                    | Luna `bitmapSubtitle*`, `embeddedSubtitleTextWindow` | Dépendra des `textTracks` natifs ; sinon externes seulement                             |
+| Transcodage audio DTS                          | —                                             | `webosDtsAudioTranscoder`                            | Aucun                                                                                   |
+| Proxy Supabase / images (imgur)                | —                                             | `webosSupabaseProxy`, `imageProxy`                   | Fetch direct (CORS)                                                                     |
+| Lecteur natif (AVPlay / app LG)                | AVPlay                                        | `luna://com.webos.applicationManager`                | `<video>` HTML5 + hls.js / dash.js (MSE/EME) **[à vérifier]**                           |
 
 ## 5. Ce qui fonctionne déjà « gratuitement » via `browserAdapter`
+
 - Détection : sans globals Tizen/webOS, `detectPlatformName()` renvoie `"browser"`.
 - Touches : Back accepté sur 461/10009/27/**8** (Backspace — code Back courant sur VIDAA **[à vérifier]**).
 - Lecture : hls.js / dash.js / `<video>` natif (branche `!isTizenRuntime` de l'échelle de moteurs).
@@ -126,6 +129,7 @@ ne couvre que touches/exit/label/capacités. Tout le reste est piloté par des `
    moteurs) et ajouter une étape CI.
 
 ## 7. Questions ouvertes à trancher
+
 - Version(s) VIDAA / Chromium minimales visées ?
 - Distribution : app hébergée (store Hisense) ou sideload/dev mode ?
 - Support MSE/EME (hls.js, dash.js, DRM) et codecs (HEVC, AC3/EAC3, DTS) sur les modèles cibles ?
