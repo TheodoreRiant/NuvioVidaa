@@ -1,8 +1,9 @@
 # Portage VIDAA (Hisense) — onboarding codebase
 
 > Base : `f6fe075` (Nuvio TV Smart v1.3.6). Ce document recense la couche plateforme existante et
-> toutes les dépendances Tizen/webOS à traiter pour une cible VIDAA. Les points marqués **[à vérifier
-> > sur TV]** sont des hypothèses sur le runtime VIDAA à confirmer sur un appareil réel.
+> toutes les dépendances Tizen/webOS à traiter pour une cible VIDAA. Les points marqués \*\*[à vérifier
+>
+> > sur TV]\*\* sont des hypothèses sur le runtime VIDAA à confirmer sur un appareil réel.
 
 ## 1. Vue d'ensemble
 
