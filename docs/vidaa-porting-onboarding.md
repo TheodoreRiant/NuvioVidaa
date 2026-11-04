@@ -165,8 +165,16 @@ Les apps TV Stremio (Tizen, webOS, Titan/NetTV, VIDAA) sont fermées, mais leur 
    `textTracks`. hls.js et dash.js restent à valider sur TV (Stremio ne les utilise pas sur VIDAA).
 3. **Le transcodage côté serveur compense** l'absence de DTS, MKV, etc., quand un serveur de streaming
    est configuré.
-4. Stremio ne contourne pas l'absence de service local : pas de plugins hors CORS, ni de proxy local,
-   ni d'extraction de sous-titres côté TV.
+4. Ce qui manque sur la TV est déplacé ailleurs, sans service local :
+   - **Debrid (TorBox, Real-Debrid…)** : le torrent est résolu chez le fournisseur et la TV ne lit qu'une
+     URL HTTPS. Aucun moteur torrent sur la TV. Notre `js/core/debrid/` ne dépend d'aucune plateforme.
+   - **Langues audio et sous-titres embarqués** : via `audioTracks` et `textTracks` du `<video>` natif.
+   - **Sous-titres externes (addons)** : téléchargés et affichés en HTML (`withHTMLSubtitles`). Avec un
+     serveur de streaming, l'ASS passe par `/subtitles.vtt` et les pistes ASS embarquées sont extraites
+     par le serveur (`/hlsv2/{id}/source/subtitle/…`).
+   - **Torrents purs** : `withStreamingServer` a besoin d'un `streamingServerURL` (par défaut
+     `http://127.0.0.1:11470/` dans `stremio-web`). Sur VIDAA, on ne voit pas dans le code public d'où il
+     vient (serveur sur le réseau local, serveur hébergé, ou résolution via debrid). **[à vérifier]**
 
 ## 8. Questions ouvertes à trancher
 
