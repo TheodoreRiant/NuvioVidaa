@@ -1,11 +1,13 @@
 import { browserAdapter } from "./adapters/browserAdapter.js";
 import { webosAdapter } from "./adapters/webosAdapter.js";
 import { tizenAdapter } from "./adapters/tizenAdapter.js";
+import { vidaaAdapter } from "./adapters/vidaaAdapter.js";
 
 const ADAPTERS = {
   browser: browserAdapter,
   webos: webosAdapter,
-  tizen: tizenAdapter
+  tizen: tizenAdapter,
+  vidaa: vidaaAdapter
 };
 
 let cachedWebOsMajorVersion = null;
@@ -63,7 +65,15 @@ function detectPlatformName() {
   if (searchParams.includes("wrapper=tizen")) {
     return "tizen";
   }
+  if (searchParams.includes("wrapper=vidaa")) {
+    return "vidaa";
+  }
   const userAgent = String(globalThis.navigator?.userAgent || "").toLowerCase();
+  // Hisense VIDAA reports e.g. "... VIDAA/6.0(Hisense;SmartTV;...)". Match on
+  // "vidaa" only: Hisense also ships Android/Google TV models.
+  if (userAgent.includes("vidaa")) {
+    return "vidaa";
+  }
   if (globalThis.webOS || globalThis.PalmSystem || globalThis.webOSSystem) {
     return "webos";
   }
@@ -122,6 +132,10 @@ export const Platform = {
 
   isTizen() {
     return this.getName() === "tizen";
+  },
+
+  isVidaa() {
+    return this.getName() === "vidaa";
   },
 
   isBrowser() {

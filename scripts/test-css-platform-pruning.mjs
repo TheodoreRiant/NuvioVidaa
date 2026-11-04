@@ -30,6 +30,14 @@ assert.match(tizen, /\.legacy-webosx \.h/);
 assert.match(tizen, /\.legacy-tizen \.b,\s*\.c/);
 assert.match(tizen, /\.tizen-tv \.d/);
 
+const vidaa = pruneCssForPlatform(fixture, "vidaa");
+assert.match(vidaa, /\.a\{color:red\}/);
+assert.match(vidaa, /\.c\{color:blue\}/);
+assert.doesNotMatch(vidaa, /\.legacy-tizen \.b|\.tizen-tv|\.legacy-webos \.f|\.legacy-webos38/);
+assert.match(vidaa, /html:not\(\.legacy-tizen\) \.e/);
+assert.match(vidaa, /\.legacy-webosx \.h/);
+assert.match(vidaa, /@keyframes k/);
+
 const bundlePath = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "..",
