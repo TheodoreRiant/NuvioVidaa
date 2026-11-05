@@ -145,6 +145,12 @@ export const Platform = {
     return this.getName() === "browser";
   },
 
+  // TVs driven by an on-screen cursor: the LG Magic Remote, and the VIDAA
+  // browser, which moves a cursor with the remote and clicks on OK.
+  hasPointerRemote() {
+    return this.isWebOS() || this.isVidaa();
+  },
+
   exitApp() {
     if (globalThis.document && typeof globalThis.CustomEvent === "function") {
       const beforeExitEvent = new CustomEvent("nuvio:beforeExitApp", {
