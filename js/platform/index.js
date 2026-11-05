@@ -69,8 +69,11 @@ function detectPlatformName() {
     return "vidaa";
   }
   const userAgent = String(globalThis.navigator?.userAgent || "").toLowerCase();
-  // Hisense VIDAA reports e.g. "... VIDAA/6.0(Hisense;SmartTV;...)". Match on
-  // "vidaa" only: Hisense also ships Android/Google TV models.
+  // Some Hisense VIDAA runtimes report e.g. "... VIDAA/6.0(Hisense;SmartTV;...)",
+  // but the VIDAA browser seen on a 2024+ set reports only
+  // "... Chrome/111.0.0.0 PageReader/6.1.20 ...". The hosted VIDAA package
+  // therefore forces __NUVIO_PLATFORM__ = "vidaa"; this check is a fallback.
+  // Match on "vidaa" only: Hisense also ships Android/Google TV models.
   if (userAgent.includes("vidaa")) {
     return "vidaa";
   }

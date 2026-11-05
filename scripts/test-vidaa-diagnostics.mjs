@@ -10,7 +10,9 @@ const {
   describeKeyEvent,
   describeRuntime,
   normalizeProbeUrl,
-  buildReport
+  buildReport,
+  SAMPLE_MKV_URL,
+  resolveVerticalKey
 } = await import("../js/platform/vidaa/vidaaDiagnostics.js");
 
 // 1. canPlayType answers map to yes / maybe / no.
@@ -150,13 +152,34 @@ assert.equal(normalizeProbeUrl(""), "");
   assert.equal(buildReport({}), "");
 }
 
-// 10. The packaged diagnostic page loads its own bundle, not the app.
+// 10. The packaged diagnostic page loads its own bundle, not the app. The
+//     short /d/ copy loads the same bundle from the site root.
 {
-  const { buildVidaaDiagnosticHtml } = await import("./package-vidaa.mjs");
+  const { buildVidaaDiagnosticHtml, buildVidaaIndexHtml } = await import("./package-vidaa.mjs");
   const html = buildVidaaDiagnosticHtml();
   assert.match(html, /<script src="vidaa-diagnostic\.js"><\/script>/);
   assert.doesNotMatch(html, /app\.bundle\.js/);
   assert.match(html, /<div id="app"><\/div>/);
+  const shortHtml = buildVidaaDiagnosticHtml({ scriptSrc: "/vidaa-diagnostic.js" });
+  assert.match(shortHtml, /<script src="\/vidaa-diagnostic\.js"><\/script>/);
+  // The hosted app forces the platform: VIDAA's browser user agent
+  // ("... Chrome/111 PageReader/6.1.20 ...") does not always say VIDAA.
+  assert.match(buildVidaaIndexHtml(), /window\.__NUVIO_PLATFORM__ = "vidaa";/);
 }
+
+// 11. The built-in sample is a public multi-track Matroska file (several audio
+//     languages and subtitle tracks), so no URL has to be typed on the TV.
+assert.equal(normalizeProbeUrl(SAMPLE_MKV_URL), SAMPLE_MKV_URL);
+assert.match(SAMPLE_MKV_URL, /^https:\/\/.+\.mkv$/);
+
+// 12. Up/Down move between controls, and past either end they scroll the
+//     page, so the report below the controls can be reached with the remote.
+assert.deepEqual(resolveVerticalKey({ index: 0, count: 5, step: 1 }), { focus: 1 });
+assert.deepEqual(resolveVerticalKey({ index: 4, count: 5, step: -1 }), { focus: 3 });
+assert.deepEqual(resolveVerticalKey({ index: 4, count: 5, step: 1 }), { scroll: 1 });
+assert.deepEqual(resolveVerticalKey({ index: 0, count: 5, step: -1 }), { scroll: -1 });
+assert.deepEqual(resolveVerticalKey({ index: -1, count: 5, step: 1 }), { scroll: 1 });
+assert.deepEqual(resolveVerticalKey({ index: -1, count: 5, step: -1 }), { scroll: -1 });
+assert.deepEqual(resolveVerticalKey({ index: 0, count: 0, step: 1 }), { scroll: 1 });
 
 console.log("VIDAA diagnostics helpers passed (media probes, tracks, keys, runtime, report).");
