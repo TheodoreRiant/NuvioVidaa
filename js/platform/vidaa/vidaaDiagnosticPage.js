@@ -13,6 +13,7 @@ import {
   resolveVerticalKey,
   SAMPLE_MKV_URL
 } from "./vidaaDiagnostics.js";
+import { REPORT_SOURCES } from "./vidaaReport.js";
 
 const DEFAULT_ADDON_URL = "https://torrentio.strem.fun/manifest.json";
 const MAX_KEYS = 12;
@@ -58,6 +59,47 @@ function readQuery(name) {
   }
 }
 
+const REPORT_ENDPOINT = "/api/report";
+const AUTO_SEND_DELAY_MS = 2000;
+const SESSION_ID = Math.random().toString(36).slice(2, 10);
+let autoSendTimer = 0;
+let lastSentReport = "";
+
+function setUploadStatus(text) {
+  const node = document.getElementById("upload-status");
+  if (node) node.textContent = text;
+}
+
+// Sends the current report to the project's Vercel logs (redacted server
+// side). Unchanged reports are not sent twice.
+async function sendReport({ force = false } = {}) {
+  const text = document.getElementById("report").textContent || "";
+  if (!text || (!force && text === lastSentReport)) return;
+  lastSentReport = text;
+  setUploadStatus("Envoi du rapport…");
+  try {
+    const response = await fetch(REPORT_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ source: REPORT_SOURCES[0], session: SESSION_ID, text })
+    });
+    const time = new Date().toLocaleTimeString();
+    setUploadStatus(
+      response.ok
+        ? `Rapport envoyé à ${time} (session ${SESSION_ID})`
+        : `Échec de l'envoi (HTTP ${response.status}) à ${time}`
+    );
+  } catch (error) {
+    lastSentReport = "";
+    setUploadStatus(`Échec de l'envoi : ${String(error && error.message ? error.message : error)}`);
+  }
+}
+
+function scheduleAutoSend() {
+  clearTimeout(autoSendTimer);
+  autoSendTimer = setTimeout(() => void sendReport(), AUTO_SEND_DELAY_MS);
+}
+
 function renderReport() {
   const report = buildReport({
     runtime: state.runtime,
@@ -71,6 +113,7 @@ function renderReport() {
     events: state.events
   });
   document.getElementById("report").textContent = report;
+  scheduleAutoSend();
 }
 
 function pushEvent(name, detail = "") {
@@ -288,7 +331,11 @@ function mount() {
   root.appendChild(video);
   bindVideo(video);
 
-  root.appendChild(element("h2", {}, "Rapport (à photographier ou copier)"));
+  root.appendChild(element("h2", {}, "Rapport (envoyé automatiquement)"));
+  root.appendChild(
+    button("report-send", "Envoyer le rapport", () => void sendReport({ force: true }))
+  );
+  root.appendChild(element("p", { id: "upload-status" }, "Pas encore envoyé"));
   root.appendChild(element("pre", { id: "report" }));
 
   state.media = probeMediaSupport({
