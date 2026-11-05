@@ -4,8 +4,9 @@
 // lagging UI. Remote keys are swallowed by the page while the splash shows.
 
 export const SPLASH_ELEMENT_ID = "nuvio-vidaa-splash";
-export const SPLASH_QUIET_MS = 700;
-export const SPLASH_MAX_AFTER_FIRST_SCREEN_MS = 6000;
+// Tuned on a 43A60LEVS: 0.7 s of quiet hid the splash while home still stalled.
+export const SPLASH_QUIET_MS = 1500;
+export const SPLASH_MAX_AFTER_FIRST_SCREEN_MS = 9000;
 export const SPLASH_HARD_MAX_MS = 25000;
 const CHECK_INTERVAL_MS = 200;
 const FADE_MS = 250;

@@ -51,8 +51,10 @@ assert.deepEqual(
 );
 
 // 4. Bounds stay sensible for a TV (measured: first screen ~4.4 s).
-assert.ok(SPLASH_QUIET_MS >= 300 && SPLASH_QUIET_MS <= 1500);
-assert.ok(SPLASH_MAX_AFTER_FIRST_SCREEN_MS >= 3000 && SPLASH_MAX_AFTER_FIRST_SCREEN_MS <= 10000);
+// Measured on a 43A60LEVS: hidden at 5.6 s after 0.7 s of quiet felt early,
+// so the splash waits for 1.5 s of quiet, up to 9 s after the first screen.
+assert.equal(SPLASH_QUIET_MS, 1500);
+assert.equal(SPLASH_MAX_AFTER_FIRST_SCREEN_MS, 9000);
 assert.ok(SPLASH_HARD_MAX_MS >= 15000 && SPLASH_HARD_MAX_MS <= 40000);
 
 // 5. The VIDAA page paints the splash before any script, below the boot
