@@ -34,6 +34,25 @@ const {
   ]);
   assert.deepEqual(snapshot.firstScreen, { route: "authQrSignIn", ms: 2300 });
   assert.deepEqual(snapshot.longTasks, { count: 3, totalMs: 500, maxMs: 300 });
+  // No start times given: nothing can be attributed to after the splash.
+  assert.deepEqual(snapshot.longTasksAfterSplash, { count: 0, totalMs: 0, maxMs: 0 });
+}
+
+// 1b. Long tasks that start after the splash is hidden are reported apart:
+//     those are the stalls the user can still feel.
+{
+  const recorder = createStartupRecorder({ now: () => 0 });
+  recorder.addLongTask(400, 3000);
+  recorder.addLongTask(200, 6000);
+  recorder.addLongTask(90, 7000);
+  recorder.markSplashHidden({ ms: 5600, reason: "quiet" });
+  const snapshot = recorder.snapshot();
+  assert.deepEqual(snapshot.longTasks, { count: 3, totalMs: 690, maxMs: 400 });
+  assert.deepEqual(snapshot.longTasksAfterSplash, { count: 2, totalMs: 290, maxMs: 200 });
+  const text = buildStartupReportText({ snapshot });
+  assert.ok(
+    text.split("\n").includes("startup.longTasksAfterSplash: count=2 totalMs=290 maxMs=200")
+  );
 }
 
 // 2. Long task input is defensive (bad values are ignored).

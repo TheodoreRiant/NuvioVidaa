@@ -13,6 +13,15 @@ function toMs(value) {
   return Number.isFinite(number) ? Math.round(number) : 0;
 }
 
+function summarizeTasks(tasks) {
+  const durations = tasks.map((task) => task.duration);
+  return {
+    count: durations.length,
+    totalMs: toMs(durations.reduce((sum, value) => sum + value, 0)),
+    maxMs: toMs(durations.length ? Math.max(...durations) : 0)
+  };
+}
+
 export function createStartupRecorder({ now = () => globalThis.performance?.now?.() || 0 } = {}) {
   const stages = [];
   const longTasks = [];
@@ -32,10 +41,11 @@ export function createStartupRecorder({ now = () => globalThis.performance?.now?
         firstScreen = { route: String(route), ms: toMs(now()) };
       }
     },
-    addLongTask(durationMs) {
+    addLongTask(durationMs, startTime) {
       const value = Number(durationMs);
       if (Number.isFinite(value) && value > 0) {
-        longTasks.push(value);
+        const start = Number(startTime);
+        longTasks.push({ duration: value, start: Number.isFinite(start) ? start : null });
       }
     },
     snapshot() {
@@ -43,11 +53,10 @@ export function createStartupRecorder({ now = () => globalThis.performance?.now?
         stages: stages.slice(),
         firstScreen,
         splash,
-        longTasks: {
-          count: longTasks.length,
-          totalMs: toMs(longTasks.reduce((sum, value) => sum + value, 0)),
-          maxMs: toMs(longTasks.length ? Math.max(...longTasks) : 0)
-        }
+        longTasks: summarizeTasks(longTasks),
+        longTasksAfterSplash: summarizeTasks(
+          splash ? longTasks.filter((task) => task.start !== null && task.start >= splash.ms) : []
+        )
       };
     }
   };
@@ -88,6 +97,12 @@ export function buildStartupReportText({ runtime = {}, profile = {}, snapshot, r
   lines.push(
     `startup.longTasks: count=${tasks.count} totalMs=${tasks.totalMs} maxMs=${tasks.maxMs}`
   );
+  const after = snapshot?.longTasksAfterSplash;
+  if (after) {
+    lines.push(
+      `startup.longTasksAfterSplash: count=${after.count} totalMs=${after.totalMs} maxMs=${after.maxMs}`
+    );
+  }
   (snapshot?.stages || []).forEach((stage, index) => {
     lines.push(`stage.${index}: ${stage.ms}ms ${stage.name}`);
   });
@@ -111,7 +126,7 @@ export function installVidaaStartupReport({ getRoute, getProfile, fetchImpl = gl
   let sent = false;
   try {
     new PerformanceObserver((list) => {
-      list.getEntries().forEach((entry) => recorder.addLongTask(entry.duration));
+      list.getEntries().forEach((entry) => recorder.addLongTask(entry.duration, entry.startTime));
     }).observe({ type: "longtask", buffered: true });
   } catch (_) {
     // Long task timing is optional.
