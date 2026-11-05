@@ -47,6 +47,19 @@ export function buildVidaaIndexHtml() {
   <link rel="stylesheet" href="css/bundle.css" />
 </head>
 <body>
+  <div id="nuvio-vidaa-splash" style="position:fixed;inset:0;top:0;left:0;right:0;bottom:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;background:#0d0d0d;transition:opacity 250ms ease-out;">
+    <img src="assets/brand/app_logo_wordmark.png" alt="Nuvio" style="width:30vw;max-width:520px;height:auto;" />
+  </div>
+  <script>
+    // Remote keys would drive the app behind the splash while it still stalls.
+    window.__NUVIO_SPLASH_ACTIVE__ = true;
+    document.addEventListener("keydown", function swallowKeysUnderSplash(event) {
+      if (window.__NUVIO_SPLASH_ACTIVE__) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
+    }, true);
+  </script>
   <script src="boot-guard.js"></script>
   <script src="core-js.bundle.js" onerror="window.NuvioBootGuard &amp;&amp; window.NuvioBootGuard.scriptFailed(this.src)"></script>
   <script>window.__NUVIO_PLATFORM__ = "vidaa";</script>

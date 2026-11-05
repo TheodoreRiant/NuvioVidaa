@@ -17,7 +17,13 @@ export function createStartupRecorder({ now = () => globalThis.performance?.now?
   const stages = [];
   const longTasks = [];
   let firstScreen = null;
+  let splash = null;
   return {
+    markSplashHidden(info) {
+      if (!splash && info) {
+        splash = { ms: toMs(info.ms), reason: String(info.reason || "") };
+      }
+    },
     stage(name) {
       stages.push({ name: String(name || ""), ms: toMs(now()) });
     },
@@ -36,6 +42,7 @@ export function createStartupRecorder({ now = () => globalThis.performance?.now?
       return {
         stages: stages.slice(),
         firstScreen,
+        splash,
         longTasks: {
           count: longTasks.length,
           totalMs: toMs(longTasks.reduce((sum, value) => sum + value, 0)),
@@ -61,7 +68,9 @@ export function summarizeResources(entries, { origin = globalThis.location?.orig
         transferKB: Math.round(transfer / 1024),
         decodedKB: Math.round(decoded / 1024),
         ms: toMs(entry.duration),
-        cached: transfer === 0 && decoded > 0
+        // Served from the HTTP cache or the service worker: no body transferred
+        // (a revalidation only moves a few hundred header bytes).
+        cached: decoded > 0 && transfer < 1024 && transfer < decoded
       };
     });
 }
@@ -72,6 +81,9 @@ export function buildStartupReportText({ runtime = {}, profile = {}, snapshot, r
   Object.entries(profile).forEach(([key, value]) => lines.push(`profile.${key}: ${value}`));
   const first = snapshot?.firstScreen;
   lines.push(`startup.firstScreen: ${first ? `${first.route} @ ${first.ms}ms` : "none"}`);
+  if (snapshot?.splash) {
+    lines.push(`startup.splashHidden: ${snapshot.splash.ms}ms ${snapshot.splash.reason}`);
+  }
   const tasks = snapshot?.longTasks || { count: 0, totalMs: 0, maxMs: 0 };
   lines.push(
     `startup.longTasks: count=${tasks.count} totalMs=${tasks.totalMs} maxMs=${tasks.maxMs}`
@@ -140,5 +152,8 @@ export function installVidaaStartupReport({ getRoute, getProfile, fetchImpl = gl
     }).catch(() => {});
   }
 
-  return { stage: (name) => recorder.stage(name) };
+  return {
+    stage: (name) => recorder.stage(name),
+    splashHidden: (info) => recorder.markSplashHidden(info)
+  };
 }

@@ -13,7 +13,8 @@ export const VIDAA_PRECACHE_FILES = Object.freeze([
   "assets/libs/qrcode-generator.js",
   "app.bundle.js",
   "assets/libs/hls.min.js",
-  "assets/libs/dash.all.min.js"
+  "assets/libs/dash.all.min.js",
+  "assets/brand/app_logo_wordmark.png"
 ]);
 
 const MEDIA_EXTENSIONS = /\.(mkv|mp4|m4v|webm|avi|mov|ts|m3u8|mpd|mp3|aac|flac|srt|vtt|ass|ssa)$/i;
