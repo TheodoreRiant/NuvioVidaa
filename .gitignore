@@ -9,6 +9,7 @@ node_modules/
 tests/
 *.ipk
 *.wgt
+nuvio-vidaa_*.zip
 dist/
 .cache/
 .pm2/

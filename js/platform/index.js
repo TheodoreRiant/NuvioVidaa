@@ -1,11 +1,13 @@
 import { browserAdapter } from "./adapters/browserAdapter.js";
 import { webosAdapter } from "./adapters/webosAdapter.js";
 import { tizenAdapter } from "./adapters/tizenAdapter.js";
+import { vidaaAdapter } from "./adapters/vidaaAdapter.js";
 
 const ADAPTERS = {
   browser: browserAdapter,
   webos: webosAdapter,
-  tizen: tizenAdapter
+  tizen: tizenAdapter,
+  vidaa: vidaaAdapter
 };
 
 let cachedWebOsMajorVersion = null;
@@ -63,7 +65,18 @@ function detectPlatformName() {
   if (searchParams.includes("wrapper=tizen")) {
     return "tizen";
   }
+  if (searchParams.includes("wrapper=vidaa")) {
+    return "vidaa";
+  }
   const userAgent = String(globalThis.navigator?.userAgent || "").toLowerCase();
+  // Some Hisense VIDAA runtimes report e.g. "... VIDAA/6.0(Hisense;SmartTV;...)",
+  // but the VIDAA browser seen on a 2024+ set reports only
+  // "... Chrome/111.0.0.0 PageReader/6.1.20 ...". The hosted VIDAA package
+  // therefore forces __NUVIO_PLATFORM__ = "vidaa"; this check is a fallback.
+  // Match on "vidaa" only: Hisense also ships Android/Google TV models.
+  if (userAgent.includes("vidaa")) {
+    return "vidaa";
+  }
   if (globalThis.webOS || globalThis.PalmSystem || globalThis.webOSSystem) {
     return "webos";
   }
@@ -124,8 +137,18 @@ export const Platform = {
     return this.getName() === "tizen";
   },
 
+  isVidaa() {
+    return this.getName() === "vidaa";
+  },
+
   isBrowser() {
     return this.getName() === "browser";
+  },
+
+  // TVs driven by an on-screen cursor: the LG Magic Remote, and the VIDAA
+  // browser, which moves a cursor with the remote and clicks on OK.
+  hasPointerRemote() {
+    return this.isWebOS() || this.isVidaa();
   },
 
   exitApp() {

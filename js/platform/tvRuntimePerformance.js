@@ -117,7 +117,9 @@ export function getTvRuntimePerformanceProfile({ forceRefresh = false } = {}) {
 
   const isWebOS = Platform.isWebOS();
   const isTizen = Platform.isTizen();
-  const isTvRuntime = isWebOS || isTizen;
+  // VIDAA exposes no firmware year; its profile relies on the Chromium version.
+  const isVidaa = Platform.isVidaa();
+  const isTvRuntime = isWebOS || isTizen || isVidaa;
   let chromiumMajorVersion = readChromiumMajorVersion();
   if (!isTvRuntime) {
     cachedProfile = Object.freeze({
@@ -149,11 +151,15 @@ export function getTvRuntimePerformanceProfile({ forceRefresh = false } = {}) {
   const isLegacyByYear = tvYearKnown && tvYear < modernTvYear;
   const isLegacyByChromium = chromiumVersionKnown && chromiumMajorVersion < modernChromiumMajor;
   const isUnidentifiedRuntime = !tvYearKnown && !chromiumVersionKnown;
-  const isLegacyTvRuntime = isLegacyByYear || isLegacyByChromium || isUnidentifiedRuntime;
+  // VIDAA pairs a recent Chromium with low-power ARM SoCs: a 43A60LEVS
+  // (MTK9603, Chromium 111) spent 17.9 s of its first ~24 s in long tasks
+  // with the modern profile, so VIDAA always uses the constrained profile.
+  const isLegacyTvRuntime =
+    isVidaa || isLegacyByYear || isLegacyByChromium || isUnidentifiedRuntime;
 
   cachedProfile = Object.freeze({
     isTvRuntime: true,
-    platform: isWebOS ? "webos" : "tizen",
+    platform: isWebOS ? "webos" : isVidaa ? "vidaa" : "tizen",
     tvYear,
     chromiumMajorVersion,
     tvYearKnown,
