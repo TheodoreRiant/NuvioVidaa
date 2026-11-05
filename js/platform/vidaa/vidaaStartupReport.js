@@ -114,6 +114,15 @@ export function buildStartupReportText({ runtime = {}, profile = {}, snapshot, r
   return lines.join("\n");
 }
 
+// "1920x1080@1" when the page got its 1920 canvas, "1280x720@1.5" when the
+// browser ignored the viewport meta.
+export function describeViewport(runtime = globalThis) {
+  const width = toMs(runtime?.innerWidth);
+  const height = toMs(runtime?.innerHeight);
+  const ratio = Number(runtime?.devicePixelRatio);
+  return `${width}x${height}@${Number.isFinite(ratio) ? Math.round(ratio * 100) / 100 : 0}`;
+}
+
 function readChromiumMajor() {
   const match = String(globalThis.navigator?.userAgent || "").match(/Chrom(?:e|ium)\/(\d+)/);
   return match ? Number(match[1]) : 0;
@@ -148,7 +157,11 @@ export function installVidaaStartupReport({ getRoute, getProfile, fetchImpl = gl
     } catch (_) {}
     const profile = getProfile?.() || {};
     const text = buildStartupReportText({
-      runtime: { userAgent: globalThis.navigator?.userAgent || "", chromium: readChromiumMajor() },
+      runtime: {
+        userAgent: globalThis.navigator?.userAgent || "",
+        chromium: readChromiumMajor(),
+        viewport: describeViewport()
+      },
       profile: {
         isPerformanceConstrained: Boolean(profile.isPerformanceConstrained),
         isLegacyTvRuntime: Boolean(profile.isLegacyTvRuntime)

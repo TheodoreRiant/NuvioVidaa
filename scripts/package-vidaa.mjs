@@ -40,7 +40,10 @@ export function buildVidaaIndexHtml() {
 <html lang="en" class="no-flex-gap no-css-math no-backdrop-filter no-aspect-ratio">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <!-- The app is laid out on a 1920x1080 canvas, like on Samsung. VIDAA
+       reports a 1280x720 viewport at 1.5 device pixels per CSS pixel, so the
+       scale is left free and the browser fits the canvas to the panel. -->
+  <meta name="viewport" content="width=1920, height=1080, user-scalable=no" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <title>${appName}</title>
   <script src="assets/runtime/legacy-features.js"></script>
