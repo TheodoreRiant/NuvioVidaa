@@ -76,15 +76,28 @@ detect({ userAgent: HISENSE_ANDROID_UA });
 assert.equal(isP2pUnsupportedOnThisTv(), false);
 assert.equal(TizenStreamingServerResolver.isUnsupportedOnCurrentTizen(torrentStream), false);
 
-// 6. Runtime profile: VIDAA is a TV runtime, sized by its Chromium version.
-detect({ userAgent: VIDAA_UA });
-const profile = getTvRuntimePerformanceProfile({ forceRefresh: true });
-assert.equal(profile.isTvRuntime, true);
-assert.equal(profile.platform, "vidaa");
-assert.equal(profile.chromiumMajorVersion, 94);
-assert.equal(profile.isLegacyTvRuntime, false);
+// 6. Runtime profile: VIDAA is always a constrained TV runtime. VIDAA sets run
+//    a recent Chromium (111 measured) on low-power ARM SoCs: a real
+//    43A60LEVS (MTK9603) spent 17.9 s of its first ~24 s in long tasks with
+//    the "modern" profile. The constrained profile defers hls.js/dash.js and
+//    drops costly effects, as on older Tizen/webOS sets.
+const MEASURED_VIDAA_APP_UA =
+  "Mozilla/5.0 (X11; Linux armv7l) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 " +
+  "Odin/111.5563.5.1 Safari/537.36 Model/VIDAA-MTK9603 " +
+  "VIDAA/9.0(Hisense;SmartTV;43A60LEVS;MTK9603/V0000.09.60V.Q0612;UHD;43A5LE;)";
+for (const userAgent of [VIDAA_UA, MEASURED_VIDAA_APP_UA]) {
+  detect({ userAgent });
+  const profile = getTvRuntimePerformanceProfile({ forceRefresh: true });
+  assert.equal(profile.isTvRuntime, true);
+  assert.equal(profile.platform, "vidaa");
+  assert.equal(profile.isPerformanceConstrained, true, `constrained for ${userAgent}`);
+  assert.equal(profile.isLegacyTvRuntime, true);
+}
+detect({ userAgent: MEASURED_VIDAA_APP_UA });
+assert.equal(getTvRuntimePerformanceProfile({ forceRefresh: true }).chromiumMajorVersion, 111);
 
-detect({ userAgent: VIDAA_UA.replace("Chrome/94.0.4606.81", "Chrome/72.0.3626.105") });
-assert.equal(getTvRuntimePerformanceProfile({ forceRefresh: true }).isLegacyTvRuntime, true);
+// Other platforms keep their version-based profile.
+detect({ platformOverride: "browser", userAgent: HISENSE_ANDROID_UA });
+assert.equal(getTvRuntimePerformanceProfile({ forceRefresh: true }).isTvRuntime, false);
 
 console.log("VIDAA platform detection, keys, P2P gating and runtime profile passed.");

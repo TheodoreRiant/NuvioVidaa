@@ -151,7 +151,11 @@ export function getTvRuntimePerformanceProfile({ forceRefresh = false } = {}) {
   const isLegacyByYear = tvYearKnown && tvYear < modernTvYear;
   const isLegacyByChromium = chromiumVersionKnown && chromiumMajorVersion < modernChromiumMajor;
   const isUnidentifiedRuntime = !tvYearKnown && !chromiumVersionKnown;
-  const isLegacyTvRuntime = isLegacyByYear || isLegacyByChromium || isUnidentifiedRuntime;
+  // VIDAA pairs a recent Chromium with low-power ARM SoCs: a 43A60LEVS
+  // (MTK9603, Chromium 111) spent 17.9 s of its first ~24 s in long tasks
+  // with the modern profile, so VIDAA always uses the constrained profile.
+  const isLegacyTvRuntime =
+    isVidaa || isLegacyByYear || isLegacyByChromium || isUnidentifiedRuntime;
 
   cachedProfile = Object.freeze({
     isTvRuntime: true,
