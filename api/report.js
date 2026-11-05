@@ -23,6 +23,12 @@ export default async function handler(req, res) {
     res.setHeader("Allow", "POST");
     return res.status(405).send("");
   }
+  // Only application/json: text/plain and form posts are "simple" requests
+  // that any website could send cross-origin without a CORS preflight.
+  const contentType = String(req.headers?.["content-type"] || "").toLowerCase();
+  if (!contentType.startsWith("application/json")) {
+    return res.status(415).send("");
+  }
   const rawBody = req.body;
   const rawLength =
     typeof rawBody === "string" ? rawBody.length : JSON.stringify(rawBody || "").length;
