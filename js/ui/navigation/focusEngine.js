@@ -1,5 +1,6 @@
 import { Router } from "./routerState.js";
 import { Platform } from "../../platform/index.js";
+import { PointerIntent } from "./pointerIntent.js";
 
 // Hold detection must use when the key was pressed/released, not when a busy main thread got to the
 // event: a late keyup would otherwise turn a short OK press into a long press (Android uses key events too).
@@ -64,6 +65,12 @@ export const FocusEngine = {
     this.boundHandleKeyUp = this.handleKeyUp.bind(this);
     this.boundHandlePointerMove = this.handlePointerMove.bind(this);
     this.boundHandlePointerClick = this.handlePointerClick.bind(this);
+    // Feeds the app-wide pointer intent gate before any hover handler runs, so
+    // synthetic moves (content changing under a still cursor) are ignored.
+    document.addEventListener("mousemove", (event) => PointerIntent.noteMove(event), {
+      capture: true,
+      passive: true
+    });
     document.addEventListener("keydown", this.boundHandleKey, true);
     document.addEventListener("keyup", this.boundHandleKeyUp, true);
     if (Platform.hasPointerRemote()) {
@@ -290,7 +297,7 @@ export const FocusEngine = {
   },
 
   handlePointerMove(event) {
-    if (!Platform.hasPointerRemote()) {
+    if (!Platform.hasPointerRemote() || !PointerIntent.isHoverIntentional()) {
       return;
     }
     this.pendingPointerMoveEvent = event;
