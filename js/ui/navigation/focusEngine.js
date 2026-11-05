@@ -66,7 +66,7 @@ export const FocusEngine = {
     this.boundHandlePointerClick = this.handlePointerClick.bind(this);
     document.addEventListener("keydown", this.boundHandleKey, true);
     document.addEventListener("keyup", this.boundHandleKeyUp, true);
-    if (Platform.isWebOS()) {
+    if (Platform.hasPointerRemote()) {
       document.addEventListener("mousemove", this.boundHandlePointerMove, true);
       document.addEventListener("pointermove", this.boundHandlePointerMove, true);
       document.addEventListener("click", this.boundHandlePointerClick, true);
@@ -290,7 +290,7 @@ export const FocusEngine = {
   },
 
   handlePointerMove(event) {
-    if (!Platform.isWebOS()) {
+    if (!Platform.hasPointerRemote()) {
       return;
     }
     this.pendingPointerMoveEvent = event;
@@ -311,7 +311,7 @@ export const FocusEngine = {
   },
 
   processPointerMove(event) {
-    if (!Platform.isWebOS()) {
+    if (!Platform.hasPointerRemote()) {
       return;
     }
     const currentScreen = Router.getCurrentScreen();
@@ -341,7 +341,7 @@ export const FocusEngine = {
   },
 
   handlePointerClick(event) {
-    if (!Platform.isWebOS()) {
+    if (!Platform.hasPointerRemote()) {
       return;
     }
     const target = this.getPointerFocusable(event);
