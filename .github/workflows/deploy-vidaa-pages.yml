@@ -1,0 +1,86 @@
+name: Deploy VIDAA Web Build to Pages
+
+# Publishes the built web app to GitHub Pages so the Nuvio TV VIDAA installer
+# can register the TV launcher entry against a stable hosted URL. Runs for every
+# published release (and on demand) and always reflects the latest release tag.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Git ref (tag/branch) to build and deploy
+        required: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: vidaa-pages
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Resolve ref to build
+        id: ref
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            echo "value=${{ github.event.release.tag_name }}" >> "$GITHUB_OUTPUT"
+          elif [ -n "${{ inputs.ref }}" ]; then
+            echo "value=${{ inputs.ref }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=${{ github.ref }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check out ref
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.ref.outputs.value }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Write release local properties
+        env:
+          NUVIO_LOCAL_PROPERTIES: ${{ secrets.NUVIO_LOCAL_PROPERTIES }}
+        run: |
+          LOCAL_PROPERTIES="$NUVIO_LOCAL_PROPERTIES"
+          if [ -z "${LOCAL_PROPERTIES//[[:space:]]/}" ]; then
+            echo "::error::NUVIO_LOCAL_PROPERTIES secret is required to build the web app with runtime env."
+            exit 1
+          fi
+          printf '%s\n' "$LOCAL_PROPERTIES" > local.properties
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build web app
+        env:
+          NUVIO_REQUIRE_LOCAL_PROPERTIES: "1"
+        run: npm run build
+
+      - name: Disable Jekyll processing
+        run: touch dist/.nojekyll
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
