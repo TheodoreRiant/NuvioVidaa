@@ -113,7 +113,6 @@ function renderReport() {
     events: state.events
   });
   document.getElementById("report").textContent = report;
-  scheduleAutoSend();
 }
 
 function pushEvent(name, detail = "") {
@@ -170,6 +169,7 @@ async function runAddonProbe() {
     };
   }
   renderReport();
+  scheduleAutoSend();
 }
 
 function runPlaybackProbe() {
@@ -202,6 +202,7 @@ function runTextTrackBootstrap() {
   if (!tracks.length) {
     pushEvent("text-bootstrap", "no text tracks");
     renderReport();
+    scheduleAutoSend();
     return;
   }
   tracks[0].mode = "showing";
@@ -211,6 +212,7 @@ function runTextTrackBootstrap() {
     });
     pushEvent("text-bootstrap", `tracks=${tracks.length}`);
     refreshTracks();
+    scheduleAutoSend();
   }, 0);
 }
 
@@ -243,6 +245,9 @@ function bindVideo(video) {
       }
       pushEvent(name, detail);
       refreshTracks();
+      if (name === "playing" || name === "error" || name === "ended") {
+        scheduleAutoSend();
+      }
     });
   });
 }
@@ -324,7 +329,12 @@ function mount() {
     })
   );
   actions.appendChild(button("media-text", "Amorcer sous-titres", runTextTrackBootstrap));
-  actions.appendChild(button("media-tracks", "Relire les pistes", refreshTracks));
+  actions.appendChild(
+    button("media-tracks", "Relire les pistes", () => {
+      refreshTracks();
+      scheduleAutoSend();
+    })
+  );
   actions.appendChild(button("media-stop", "Stop", stopPlayback));
   root.appendChild(actions);
   const video = element("video", { id: "probe-video", playsinline: "" });
