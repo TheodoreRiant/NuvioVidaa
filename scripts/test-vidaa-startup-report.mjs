@@ -24,7 +24,10 @@ const {
   clock = 2900;
   recorder.markFirstScreen("home"); // only the first screen counts
   recorder.addLongTask(300);
+  recorder.markSplashHidden({ ms: 5100.4, reason: "quiet" });
+  recorder.markSplashHidden({ ms: 9000, reason: "late" }); // first one counts
   const snapshot = recorder.snapshot();
+  assert.deepEqual(snapshot.splash, { ms: 5100, reason: "quiet" });
   assert.deepEqual(snapshot.stages, [
     { name: "Rendering application shell", ms: 100 },
     { name: "Checking authentication", ms: 450 }
@@ -85,6 +88,25 @@ const {
     { file: "bundle.css", transferKB: 0, decodedKB: 540, ms: 12, cached: true }
   ]);
   assert.deepEqual(summarizeResources(null, { origin }), []);
+  // A revalidation (304) or service worker response moves only header bytes.
+  const revalidated = summarizeResources(
+    [
+      {
+        name: `${origin}/core-js.bundle.js`,
+        transferSize: 300,
+        decodedBodySize: 164000,
+        duration: 40
+      }
+    ],
+    { origin }
+  );
+  assert.equal(revalidated[0].cached, true);
+  // A tiny file fully downloaded is not cached.
+  const tiny = summarizeResources(
+    [{ name: `${origin}/nuvio.env.js`, transferSize: 900, decodedBodySize: 800, duration: 40 }],
+    { origin }
+  );
+  assert.equal(tiny[0].cached, false);
 }
 
 // 4. The report is plain "section.key: value" text, ready for /api/report.
@@ -95,6 +117,7 @@ const {
     snapshot: {
       stages: [{ name: "Checking authentication", ms: 450 }],
       firstScreen: { route: "home", ms: 2300 },
+      splash: { ms: 5100, reason: "quiet" },
       longTasks: { count: 3, totalMs: 500, maxMs: 300 }
     },
     resources: [
@@ -105,6 +128,7 @@ const {
   assert.ok(lines.includes("runtime.userAgent: UA PageReader/6.1.20"));
   assert.ok(lines.includes("profile.isPerformanceConstrained: false"));
   assert.ok(lines.includes("startup.firstScreen: home @ 2300ms"));
+  assert.ok(lines.includes("startup.splashHidden: 5100ms quiet"));
   assert.ok(lines.includes("startup.longTasks: count=3 totalMs=500 maxMs=300"));
   assert.ok(lines.includes("stage.0: 450ms Checking authentication"));
   assert.ok(

@@ -28,6 +28,7 @@ import { TizenCapabilities } from "./platform/tizen/tizenCapabilities.js";
 import { PluginServiceClient } from "./platform/pluginServiceClient.js";
 import { getTvRuntimePerformanceProfile } from "./platform/tvRuntimePerformance.js";
 import { installVidaaStartupReport } from "./platform/vidaa/vidaaStartupReport.js";
+import { installVidaaSplash } from "./platform/vidaa/vidaaSplash.js";
 import { LocalStore } from "./core/storage/localStore.js";
 import { I18n } from "./i18n/index.js";
 import { getLatestAppUpdateWithRetry } from "./core/update/appUpdateService.js";
@@ -613,6 +614,10 @@ async function bootstrapApp() {
     vidaaStartupReport = installVidaaStartupReport({
       getRoute: () => Router.getCurrent(),
       getProfile: () => getTvRuntimePerformanceProfile()
+    });
+    installVidaaSplash({
+      getRoute: () => Router.getCurrent(),
+      onHidden: (info) => vidaaStartupReport?.splashHidden(info)
     });
   }
   markBootStage("Rendering application shell");
