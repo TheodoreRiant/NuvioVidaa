@@ -48,6 +48,13 @@
   color: var(--text-secondary);
 }
 
+/* The root takes focus while controls are hidden (an invisible input sink).
+   Without this, Chromium draws its default focus ring along the screen edges. */
+.player-ui-root:focus,
+.player-ui-root:focus-visible {
+  outline: none;
+}
+
 .player-ui-root {
   position: absolute;
   top: 0;
