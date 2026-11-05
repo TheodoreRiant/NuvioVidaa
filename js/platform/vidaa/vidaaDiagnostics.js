@@ -20,6 +20,21 @@ export const MEDIA_PROBES = Object.freeze([
   { id: "flac", label: "FLAC", mime: 'audio/mp4; codecs="flac"' }
 ]);
 
+// Matroska test file 5 from the IETF CELLAR working group: H.264 + AAC with
+// several audio languages and subtitle tracks, served publicly over HTTPS.
+export const SAMPLE_MKV_URL =
+  "https://raw.githubusercontent.com/ietf-wg-cellar/matroska-test-files/master/test_files/test5.mkv";
+
+// Up/Down handling for the remote: move between controls, and scroll the page
+// once focus is past the first or last control (or not on a control at all).
+export function resolveVerticalKey({ index = -1, count = 0, step = 1 } = {}) {
+  const next = index + step;
+  if (index < 0 || count <= 0 || next < 0 || next >= count) {
+    return { scroll: step > 0 ? 1 : -1 };
+  }
+  return { focus: next };
+}
+
 export function classifySupport(value) {
   if (value === "probably") return "yes";
   if (value === "maybe") return "maybe";

@@ -9,7 +9,9 @@ import {
   describeTrackApis,
   listTracks,
   normalizeProbeUrl,
-  probeMediaSupport
+  probeMediaSupport,
+  resolveVerticalKey,
+  SAMPLE_MKV_URL
 } from "./vidaaDiagnostics.js";
 
 const DEFAULT_ADDON_URL = "https://torrentio.strem.fun/manifest.json";
@@ -206,11 +208,26 @@ function focusables() {
   return Array.from(document.querySelectorAll("[data-focusable]"));
 }
 
+const SCROLL_STEP_PX = 320;
+
 function moveFocus(step) {
   const items = focusables();
   const index = items.indexOf(document.activeElement);
-  const next = items[Math.max(0, Math.min(items.length - 1, index + step))] || items[0];
-  if (next) next.focus();
+  const action = resolveVerticalKey({ index, count: items.length, step });
+  if (action.focus !== undefined) {
+    items[action.focus].focus();
+    return;
+  }
+  if (action.scroll < 0 && index < 0 && (globalThis.scrollY || 0) <= SCROLL_STEP_PX) {
+    // Back at the top: return to the last control.
+    globalThis.scrollTo(0, 0);
+    if (items.length) items[items.length - 1].focus();
+    return;
+  }
+  if (document.activeElement && document.activeElement.blur && action.scroll > 0) {
+    document.activeElement.blur();
+  }
+  globalThis.scrollBy(0, action.scroll * SCROLL_STEP_PX);
 }
 
 function onKeyDown(event) {
@@ -243,7 +260,7 @@ function mount() {
     element(
       "p",
       {},
-      "Haut/Bas pour naviguer, OK pour valider. Appuie sur les touches de la télécommande (Retour, lecture…) : elles sont notées dans le rapport."
+      "Haut/Bas pour naviguer (Bas après le dernier bouton fait défiler jusqu'au rapport), OK pour valider. Appuie sur les touches de la télécommande (Retour, lecture…) : elles sont notées dans le rapport."
     )
   );
 
@@ -257,6 +274,12 @@ function mount() {
   );
   const actions = element("div", { class: "row" });
   actions.appendChild(button("media-run", "Lire", runPlaybackProbe));
+  actions.appendChild(
+    button("media-sample", "Vidéo de test MKV", () => {
+      document.getElementById("media-url").value = SAMPLE_MKV_URL;
+      runPlaybackProbe();
+    })
+  );
   actions.appendChild(button("media-text", "Amorcer sous-titres", runTextTrackBootstrap));
   actions.appendChild(button("media-tracks", "Relire les pistes", refreshTracks));
   actions.appendChild(button("media-stop", "Stop", stopPlayback));

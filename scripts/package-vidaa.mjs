@@ -4,7 +4,7 @@
 // and no companion service. This script stages the built app as a static
 // folder (.cache/vidaa-package/app) and zips it for deployment to any static
 // host. Torrent/P2P and the packaged PluginService are unavailable on VIDAA.
-import { access, cp, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { access, cp, mkdir, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { constants as fsConstants } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -62,7 +62,7 @@ export function buildVidaaIndexHtml() {
 
 // Standalone on-device diagnostic page: runtime, codecs, track APIs, remote
 // keys, addon reachability and a playback probe. It does not load the app.
-export function buildVidaaDiagnosticHtml() {
+export function buildVidaaDiagnosticHtml({ scriptSrc = "vidaa-diagnostic.js" } = {}) {
   return `<!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -82,7 +82,7 @@ export function buildVidaaDiagnosticHtml() {
 </head>
 <body>
   <div id="app"></div>
-  <script src="vidaa-diagnostic.js"></script>
+  <script src="${scriptSrc}"></script>
 </body>
 </html>
 `;
@@ -102,6 +102,13 @@ async function buildDiagnosticBundle() {
   await writeFile(
     path.join(appStageDir, "vidaa-diagnostic.html"),
     buildVidaaDiagnosticHtml(),
+    "utf8"
+  );
+  // Short address to type with the remote: <host>/d/
+  await mkdir(path.join(appStageDir, "d"), { recursive: true });
+  await writeFile(
+    path.join(appStageDir, "d", "index.html"),
+    buildVidaaDiagnosticHtml({ scriptSrc: "/vidaa-diagnostic.js" }),
     "utf8"
   );
 }
