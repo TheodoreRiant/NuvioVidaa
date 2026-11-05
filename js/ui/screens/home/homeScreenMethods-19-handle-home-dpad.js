@@ -1,4 +1,5 @@
 import * as internals from "./homeScreenContext.js";
+import { PointerIntent } from "../../navigation/pointerIntent.js";
 
 export function createHomeScreenMethods19() {
   const { getLegacySidebarSelectedNode, getModernSidebarSelectedNode, getDirectionFromKeyCode, MODERN_HOME_CONSTANTS, Router } = internals;
@@ -190,6 +191,11 @@ export function createHomeScreenMethods19() {
       }
       if (!this.boundHomeMouseOverHandler) {
         this.boundHomeMouseOverHandler = (event) => {
+          // Only real cursor movement counts as hover: content changing under a
+          // still cursor (poster expansion, hero rotation) must not move focus.
+          if (!PointerIntent.isHoverIntentional()) {
+            return;
+          }
           const target = event?.target?.closest?.(".home-main .home-content-card.focusable");
           if (!target || !this.container?.contains(target) || target.classList.contains("focused")) {
             return;
