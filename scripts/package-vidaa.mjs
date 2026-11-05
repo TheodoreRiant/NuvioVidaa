@@ -6,6 +6,7 @@
 // host. Torrent/P2P and the packaged PluginService are unavailable on VIDAA.
 import { access, cp, mkdir, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { constants as fsConstants } from "node:fs";
+import { createHash } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
@@ -13,6 +14,7 @@ import JSZip from "jszip";
 import { readAppMetadata } from "./appMetadata.mjs";
 import { compatibilityPolicy } from "./compatibilityPolicy.mjs";
 import { pruneCssFileForPlatform } from "./pruneCssForPlatform.mjs";
+import { VIDAA_PRECACHE_FILES } from "../js/platform/vidaa/vidaaCacheRoutes.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, "..");
@@ -54,6 +56,12 @@ export function buildVidaaIndexHtml() {
     window.NuvioBootGuard.runCompatibilityGate({ platform: "vidaa" }, function startNuvioApp() {
       window.NuvioBootGuard.loadScript("app.bundle.js");
     });
+    // App-shell cache (sw.js): registered after load so it never delays start.
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", function registerNuvioServiceWorker() {
+        navigator.serviceWorker.register("sw.js").catch(function () {});
+      });
+    }
   </script>
 </body>
 </html>
@@ -113,6 +121,42 @@ async function buildDiagnosticBundle() {
   );
 }
 
+// Cache version: changes whenever any precached file changes, so each deploy
+// installs a fresh cache and the worker deletes the previous one.
+export function computeCacheVersion(buffers) {
+  const hash = createHash("sha256");
+  buffers.forEach((buffer) => hash.update(buffer));
+  return hash.digest("hex").slice(0, 16);
+}
+
+export async function buildVidaaServiceWorker({ version }) {
+  const result = await build({
+    entryPoints: [path.join(rootDir, "js", "platform", "vidaa", "vidaaServiceWorker.js")],
+    bundle: true,
+    write: false,
+    format: "iife",
+    platform: "browser",
+    target: [`chrome${compatibilityPolicy.chromiumVersion}`],
+    minify: false,
+    legalComments: "none",
+    define: { __VIDAA_CACHE_NAME__: JSON.stringify(`nuvio-vidaa-${version}`) }
+  });
+  return result.outputFiles[0].text;
+}
+
+async function writeServiceWorker() {
+  const buffers = await Promise.all(
+    VIDAA_PRECACHE_FILES.map((file) => readFile(path.join(appStageDir, file)))
+  );
+  const version = computeCacheVersion(buffers);
+  await writeFile(
+    path.join(appStageDir, "sw.js"),
+    await buildVidaaServiceWorker({ version }),
+    "utf8"
+  );
+  console.log(`VIDAA service worker cache version ${version}`);
+}
+
 async function stageApp() {
   await rm(stagingDir, { recursive: true, force: true });
   await cp(distDir, appStageDir, { recursive: true });
@@ -123,6 +167,7 @@ async function stageApp() {
   await cp(path.join(rootDir, "assets", "images", "icon.png"), path.join(appStageDir, "icon.png"));
   await writeFile(path.join(appStageDir, "index.html"), buildVidaaIndexHtml(), "utf8");
   await buildDiagnosticBundle();
+  await writeServiceWorker();
 }
 
 async function addDirectoryToZip(zip, directory, prefix = "") {
