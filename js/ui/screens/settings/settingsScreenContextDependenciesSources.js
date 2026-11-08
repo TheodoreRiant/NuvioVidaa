@@ -90,6 +90,7 @@ export { SupabaseApi } from "../../../data/remote/supabase/supabaseApi.js";
 export { Platform } from "../../../platform/index.js";
 
 export { TizenCapabilities } from "../../../platform/tizen/tizenCapabilities.js";
+export { isP2pUnsupportedOnThisTv } from "../../../platform/p2pSupport.js";
 
 export { isFastHorizontalNavigationEnabled } from "../../../platform/sharedKeys.js";
 

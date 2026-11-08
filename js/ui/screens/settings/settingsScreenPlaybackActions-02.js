@@ -8,6 +8,7 @@ export function registerPlaybackActionsPart02(model) {
     SUBTITLE_VERTICAL_OFFSET_DEFAULT,
     TorrentSettingsStore,
     TizenCapabilities,
+    isP2pUnsupportedOnThisTv,
     PREFERRED_SUBTITLE_LANGUAGE_OPTIONS,
     PREFERRED_PLAYBACK_LANGUAGE_OPTIONS,
     SECONDARY_PLAYBACK_LANGUAGE_OPTIONS,
@@ -237,7 +238,7 @@ export function registerPlaybackActionsPart02(model) {
     });
   });
   this.actionMap.set("playback:p2pEnabled", () => {
-    if (TizenCapabilities.isP2pUnsupported()) {
+    if (isP2pUnsupportedOnThisTv()) {
       return;
     }
     const current = TorrentSettingsStore.get();
@@ -264,7 +265,7 @@ export function registerPlaybackActionsPart02(model) {
     });
   });
   this.actionMap.set("playback:hideTorrentStats", () => {
-    if (TizenCapabilities.isP2pUnsupported()) {
+    if (isP2pUnsupportedOnThisTv()) {
       return;
     }
     TorrentSettingsStore.setHideTorrentStats(!TorrentSettingsStore.get().hideTorrentStats);
@@ -272,7 +273,7 @@ export function registerPlaybackActionsPart02(model) {
 
   if (model.experience?.mode === "ESSENTIAL") {
     const torrentSettings = model.torrent || TorrentSettingsStore.get();
-    const tizenP2pUnsupported = TizenCapabilities.isP2pUnsupported();
+    const tizenP2pUnsupported = isP2pUnsupportedOnThisTv();
     const p2pUnavailableSubtitle = tizenP2pUnsupported
       ? t("settings_p2p_unsupported_subtitle", {}, "Not supported on this TV.")
       : t("settings_p2p_subtitle");

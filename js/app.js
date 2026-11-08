@@ -27,6 +27,8 @@ import { Platform } from "./platform/index.js";
 import { TizenCapabilities } from "./platform/tizen/tizenCapabilities.js";
 import { PluginServiceClient } from "./platform/pluginServiceClient.js";
 import { getTvRuntimePerformanceProfile } from "./platform/tvRuntimePerformance.js";
+import { installVidaaStartupReport } from "./platform/vidaa/vidaaStartupReport.js";
+import { installVidaaSplash } from "./platform/vidaa/vidaaSplash.js";
 import { LocalStore } from "./core/storage/localStore.js";
 import { I18n } from "./i18n/index.js";
 import { getLatestAppUpdateWithRetry } from "./core/update/appUpdateService.js";
@@ -68,6 +70,8 @@ const SIGNED_OUT_ALLOWED_ROUTES = new Set([
 ]);
 let hasSelectedProfileThisSession = false;
 let appShellRendered = false;
+// VIDAA only: measures startup on the TV and sends one report per launch.
+let vidaaStartupReport = null;
 let updateCheckStarted = false;
 
 const APP_VERSION = typeof __NUVIO_APP_VERSION__ !== "undefined" ? __NUVIO_APP_VERSION__ : "0.0.0";
@@ -98,6 +102,7 @@ function preloadMaterialIconFont() {
 }
 
 function markBootStage(stage) {
+  vidaaStartupReport?.stage(stage);
   const guard = globalThis.NuvioBootGuard;
   if (guard && typeof guard.stage === "function") {
     guard.stage(stage);
@@ -605,6 +610,16 @@ function setupPluginServiceLifecycle() {
 }
 
 async function bootstrapApp() {
+  if (Platform.isVidaa()) {
+    vidaaStartupReport = installVidaaStartupReport({
+      getRoute: () => Router.getCurrent(),
+      getProfile: () => getTvRuntimePerformanceProfile()
+    });
+    installVidaaSplash({
+      getRoute: () => Router.getCurrent(),
+      onHidden: (info) => vidaaStartupReport?.splashHidden(info)
+    });
+  }
   markBootStage("Rendering application shell");
   renderAppShell();
   appShellRendered = true;
